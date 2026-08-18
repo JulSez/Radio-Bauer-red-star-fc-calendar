@@ -1,0 +1,1 @@
+# Le générateur utilise uniquement la bibliothèque standard Python.
