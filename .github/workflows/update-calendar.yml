@@ -13,7 +13,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5/v6 utilisent le runtime Node.js 24 pris en charge par les runners GitHub.
+      - uses: actions/checkout@v5
         with: {ref: main}
       - name: Vérifier 09 h à Paris
         id: local-time
@@ -24,7 +25,7 @@ jobs:
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         if: steps.local-time.outputs.run == 'true'
         with: {python-version: "3.12"}
       - name: Tests
