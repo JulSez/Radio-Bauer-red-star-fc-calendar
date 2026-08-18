@@ -8,7 +8,7 @@ Générateur statique d’un calendrier iCalendar des **34 matchs de Ligue 2** d
 
 ## Fonctionnement et source
 
-`src/fetch.py` lit les objets publics Schema.org `SportsEvent` de la page calendrier du [site officiel du Red Star](https://www.redstar.fr/calendrier-resultats/). Cette source est isolée dans un adaptateur facile à remplacer. La variable de dépôt `MATCHES_SOURCE_URL` permet de changer l’URL sans modifier le code. Chaque entrée conserve l’URL et l’instant de vérification dans `data/competitions/ligue-2.json` puis dans la description ICS.
+Le chemin précédemment supposé sur le site du Red Star (`/calendrier-resultats/`) renvoie HTTP 404 et ne peut donc pas alimenter le calendrier. `src/fetch.py` utilise désormais le tableau public ESPN de Ligue 2 comme **source sportive publique de secours**. La variable facultative `MATCHES_SOURCE_URL` permet de remplacer facilement cette URL lorsqu'une source officielle Red Star ou LFP exploitable est identifiée. Chaque entrée conserve l’URL réellement utilisée et l’instant de vérification dans `data/competitions/ligue-2.json` puis dans la description ICS.
 
 Les compétitions sont volontairement séparées :
 
@@ -45,11 +45,11 @@ Après fusion sur `main` :
 
 1. ouvrir **Settings → Actions → General** et, dans **Workflow permissions**, autoriser **Read and write permissions** afin que le bot puisse commiter les fichiers générés ;
 2. ouvrir **Settings → Secrets and variables → Actions → Variables → New repository variable** ;
-3. créer `MATCHES_SOURCE_URL` avec l'URL de la page calendrier officielle si elle diffère de l'URL par défaut (sinon ne rien créer) ;
+3. ne créer `MATCHES_SOURCE_URL` que pour fournir une URL d'API compatible différente ; sinon ne rien créer et conserver la source publique de secours configurée ;
 4. ouvrir l'onglet **Actions**, sélectionner **Actualiser le calendrier**, puis cliquer sur **Run workflow** pour tester une première exécution ;
 5. vérifier que l'exécution trouve bien 34 rencontres avant d'activer GitHub Pages.
 
-Il n'y a ni appel ChatGPT ni clé API dans cette tâche récurrente : le JSON initial peut être préparé avec une recherche assistée, mais le mardi GitHub Actions relit directement la source officielle. En cas d'échec ou de résultat incomplet, le workflow échoue avant le commit et conserve la dernière publication valide.
+Il n'y a ni appel ChatGPT ni clé API dans cette tâche récurrente : le JSON initial peut être préparé avec une recherche assistée, mais le mardi GitHub Actions relit directement la source configurée. En cas d'échec ou de résultat incomplet, le workflow échoue avant le commit et conserve la dernière publication valide.
 
 ## Automatisation
 
@@ -78,6 +78,6 @@ Dans Google Calendar sur ordinateur : à côté de **Autres agendas**, cliquer *
 
 ## Limites connues
 
-- L’adaptateur suppose que le site officiel expose les équipes, la date et le numéro de journée en JSON-LD. Une évolution du balisage fera échouer sans écraser la dernière version valide.
+- La source de secours ESPN n'est pas une source officielle du club ou de la LFP. Chaque exécution exige néanmoins les 34 journées et échoue sans écraser la dernière version valide si le flux est incomplet ou change de format.
 - La première édition complète ne peut être publiée que lorsque les 34 affiches officielles sont accessibles et vérifiées. Les heures non annoncées resteront volontairement « à confirmer ».
 - La fréquence de prise en compte d’un ICS distant dépend de Proton/Google et non de ce dépôt.
