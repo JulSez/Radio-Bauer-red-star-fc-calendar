@@ -1,0 +1,52 @@
+name: Actualiser le calendrier
+on:
+  workflow_dispatch:
+  schedule:
+    # 09:00 Paris = 07:00 UTC (été) ou 08:00 UTC (hiver). Le garde-fou local élimine l'autre passage.
+    - cron: "0 7,8 * * 2"
+permissions:
+  contents: write
+concurrency:
+  group: update-calendar
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main}
+      - name: Vérifier 09 h à Paris
+        id: local-time
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == schedule && "$(TZ=Europe/Paris date +%H)" != 09 ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.local-time.outputs.run == 'true'
+        with: {python-version: "3.12"}
+      - name: Tests
+        if: steps.local-time.outputs.run == 'true'
+        run: python -m unittest discover -v
+      - name: Récupérer, valider et générer
+        if: steps.local-time.outputs.run == 'true'
+        env:
+          MATCHES_SOURCE_URL: ${{ vars.MATCHES_SOURCE_URL }}
+        run: |
+          if [[ -n "$MATCHES_SOURCE_URL" ]]; then
+            python -m src.fetch --url "$MATCHES_SOURCE_URL"
+          else
+            python -m src.fetch
+          fi
+          python -m src.generate
+      - name: Publier seulement un changement réel
+        if: steps.local-time.outputs.run == 'true'
+        run: |
+          git add data docs
+          git diff --cached --quiet && exit 0
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "chore: actualiser le calendrier"
+          git push origin HEAD:main
